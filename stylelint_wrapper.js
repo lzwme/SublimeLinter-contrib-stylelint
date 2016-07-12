@@ -1,4 +1,5 @@
 var fs = require("fs");
+
 /**
  * get syntax from filename ext
  * @param  {Array} argv process.argv
@@ -75,10 +76,11 @@ if (index > -1) {
     /// if we cannot locate a local stylelint CLI, try to look for it on npm global
     if(!cliLocation && !useOld) {
         var npmPath = require("child_process").execSync("npm root -g").toString()
-            .trim().replace("/node_modules", "");
+            .trim();
+        var cliPath = npmPath + CLI_JS_LOCATION.replace("/node_modules", "");
 
-        if(fs.existsSync(npmPath + CLI_JS_LOCATION)) {
-            cliLocation = npmPath + CLI_JS_LOCATION;
+        if(fs.existsSync(cliPath)) {
+            cliLocation = cliPath;
         }
     }
 }
@@ -87,16 +89,18 @@ if (index > -1) {
 /// using the CLI gets around a bunch of things, like needing the "postcss-scss" module. plus a lot of work went into it!
 if(cliLocation){
     /// use the CLI, we found it earlier on.
-    var child_process = require("child_process");
-    var lint, args,
-        syntax = getSyntax(process.argv);
+    var args = process.argv.concat([]);
+    args.splice(0, 2);
 
+    var syntax = getSyntax(process.argv);
     if (syntax) {
-        args = [cliLocation, process.argv[2], '--syntax', syntax];
+        args = [cliLocation, '--syntax', syntax].concat(args);
     } else {
-        args = [cliLocation, process.argv[2] ];
+        args = [cliLocation].concat(args);
     }
-    lint = child_process.spawnSync("node", args);
+
+    var child_process = require("child_process");
+    var lint = child_process.spawnSync("node", args);
     /// re-route the stdout to ours
     console.log(String(lint.stdout) + String(lint.stderr));
 }
